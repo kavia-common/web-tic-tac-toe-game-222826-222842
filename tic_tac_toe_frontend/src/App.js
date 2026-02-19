@@ -1,47 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+import React, { useMemo, useState } from 'react';
 import './App.css';
+import Board from './components/Board';
+import StatusBar from './components/StatusBar';
+import { calculateWinner, isDraw } from './components/gameLogic';
 
-// PUBLIC_INTERFACE
+const EMPTY_BOARD = Array(9).fill(null);
+
+/**
+ * PUBLIC_INTERFACE
+ * App composition root: owns gameplay state and composes UI components.
+ */
 function App() {
-  const [theme, setTheme] = useState('light');
+  const [squares, setSquares] = useState(EMPTY_BOARD);
+  const [xIsNext, setXIsNext] = useState(true);
 
-  // Effect to apply theme to document element
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+  const { winner, winningLine } = useMemo(() => calculateWinner(squares), [squares]);
+  const draw = useMemo(() => isDraw(squares), [squares]);
+
+  const isLocked = Boolean(winner) || draw;
+
+  const statusText = useMemo(() => {
+    if (winner === 'X') return <span className="end"><span className="x">X</span> wins</span>;
+    if (winner === 'O') return <span className="end"><span className="o">O</span> wins</span>;
+    if (draw) return <span className="end">Draw</span>;
+    return (
+      <>
+        Next: {xIsNext ? <span className="x">X</span> : <span className="o">O</span>}
+      </>
+    );
+  }, [winner, draw, xIsNext]);
+
+  const hintText = useMemo(() => {
+    if (winner || draw) return 'Press Restart to play again';
+    return 'Click a square to place your mark';
+  }, [winner, draw]);
 
   // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  const handlePlayAtIndex = (index) => {
+    if (isLocked) return;
+    if (squares[index] !== null) return;
+
+    const nextSquares = squares.slice();
+    nextSquares[index] = xIsNext ? 'X' : 'O';
+
+    setSquares(nextSquares);
+    setXIsNext((v) => !v);
+  };
+
+  // PUBLIC_INTERFACE
+  const handleRestart = () => {
+    setSquares(EMPTY_BOARD);
+    setXIsNext(true);
   };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <button 
-          className="theme-toggle" 
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-        </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <div className="app-shell">
+        <StatusBar statusText={statusText} hintText={hintText} />
+
+        <main className="main">
+          <section className="panel" aria-label="Game area">
+            <Board
+              squares={squares}
+              onPlayAtIndex={handlePlayAtIndex}
+              isLocked={isLocked}
+              winningLine={winningLine}
+            />
+
+            <div className="actions">
+              <button type="button" className="btn" onClick={handleRestart}>
+                Restart
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

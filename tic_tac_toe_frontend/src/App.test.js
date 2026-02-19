@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders status bar and restart button', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText(/retro tic tac toe/i)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /restart/i })).toBeInTheDocument();
 });
